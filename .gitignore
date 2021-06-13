@@ -1,0 +1,18 @@
+#excluding all examples from the nordic SDK except for the project folder
+SDK/components
+SDK/config
+SDK/documentation
+SDK/examples
+SDK/external
+SDK/external_tools
+SDK/integration
+SDK/modules
+SDK/license.txt
+#SDK/project/project/ble_app_blinky/itsyBitsy/s140/ses/Output
+
+#extra post-build trash
+*.o
+*.d
+*.asm
+*.ind
+*.ld
