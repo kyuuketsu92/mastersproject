@@ -129,6 +129,9 @@
       <folder Name="BLE">
         <file file_name="../../../../../../../SRC/BLE_main.c" />
       </folder>
+      <folder Name="USB">
+        <file file_name="../../../../../../../SRC/usb_main.c" />
+      </folder>
     </folder>
     <folder Name="nRF_Segger_RTT">
       <file file_name="../../../../../../external/segger_rtt/SEGGER_RTT.c" />
