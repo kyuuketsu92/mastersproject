@@ -3,7 +3,7 @@
 #include "nordic_common.h"
 #include "nrf.h"
 #include "usb_main.h"
-
+#include "accelerometer.h"
 
 #include "boards.h"
 #include "app_timer.h"
@@ -18,45 +18,13 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-//i2c
-#include "nrf_drv_twi.h"
-
 //ble
 #include "BLE_main.h"
 
 #include "movavg.h"
 
-/* TWI instance ID. */
-#define TWI_INSTANCE_ID     0
-
-#define MPU6050_ADDR 0x68
-#define MPU6050_PWR_ADDR 0x6B
-#define MPU6050_DATA_START_ADDR 0x3B
-#define MPU6050_READBYTES_COUNT 14 
-/* Indicates if operation on TWI has ended. */
-static volatile bool m_xfer_done = false;
-
-/* TWI instance. */
-static const nrf_drv_twi_t m_twi = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
-
-/* Buffer for samples read from temperature sensor. */
-static uint8_t m_sample[14] = {0};
-static int16_t accX;
-static int16_t accY;
-static int16_t accZ;
-static int16_t temp;
-static int16_t rotX;
-static int16_t rotY;
-static int16_t rotZ;
-
 #define LEDBUTTON_BUTTON                BSP_BUTTON_0                            /**< Button that will trigger the notification event with the LED Button Service */
 
-
-typedef struct {float L; float a; float b;}Lab;
-typedef struct {float r; float g; float b;}RGB;
-#define LUMINOSITY 0.5f
-#define CHROME 0.08f
-#define STEPS 720
 
 #define LED_BLINK_INTERVAL 800
 
@@ -68,42 +36,61 @@ APP_TIMER_DEF(my_timer_id);
 
 #define NUMLEDS 24
 static WS2812B_LED ledColours[NUMLEDS] = {0};
-double step = 6.28 / STEPS;
 
+static ACCEL_struct_t accelerometer_data = {0};
+static ACCEL_struct_t accelerometer_data_lp = {0};
 
 static uint32_t CSPINS[6] = {D13,D12,D11,D10,D9,D7}; //front bottom left top right  back
+
+static ble_cube_data_struct_t cube_data_struct = {0};
 
 //MATH RELATED
 
 //not the most ideal system to auto generate the full cube's buffers at compilation but I cannot find a loop as a preprocessor directive
-#define LOWPASS_OERDER 16
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 0)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 1)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 2)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 3)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 4)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 5)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 6)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 7)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 8)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 9)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 10)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 11)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 12)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 13)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 14)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 15)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 16)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 17)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 18)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 19)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 20)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 21)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 22)
-MOV_STRUCT_GEN(LOWPASS_OERDER, mov_buff, 23)
+#define LOWPASS_ORDER 16
+//buttons
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 0)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 1)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 2)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 3)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 4)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 5)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 6)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 7)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 8)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 9)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 10)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 11)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 12)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 13)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 14)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 15)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 16)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 17)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 18)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 19)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 20)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 21)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 22)
+MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 23)
+//accelerometers
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 24)
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 25)
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 26)
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 27)
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 28)
+//MOV_STRUCT_GEN(LOWPASS_ORDER, mov_buff, 29)
 //adding the pointers into a buffer for easier program handling
 static movavg_struct * movavg_structs[24] = {&mov_buff_0,&mov_buff_1,&mov_buff_2,&mov_buff_3,&mov_buff_4,&mov_buff_5,&mov_buff_6,&mov_buff_7,&mov_buff_8,&mov_buff_9,&mov_buff_10,
-                                    &mov_buff_11,&mov_buff_12,&mov_buff_13,&mov_buff_14,&mov_buff_15,&mov_buff_16,&mov_buff_17,&mov_buff_18,&mov_buff_19,&mov_buff_20,&mov_buff_21,&mov_buff_22,&mov_buff_23};
+                                             &mov_buff_11,&mov_buff_12,&mov_buff_13,&mov_buff_14,&mov_buff_15,&mov_buff_16,&mov_buff_17,&mov_buff_18,&mov_buff_19,&mov_buff_20,
+                                             &mov_buff_21,&mov_buff_22,&mov_buff_23};
+
+
+//BUFFER FOR BUTTON EVENTS
+#define BUTTONPRESSBUFFERDATASIZE 5
+static uint8_t buttonPressBuffer [24][BUTTONPRESSBUFFERDATASIZE + 2] = {0}; //0-4 data, 5 counter, 6 status
+
+//static movavg_struct * movavg_structs_acc[6] = {&mov_buff_24,&mov_buff_25,&mov_buff_26,&mov_buff_27,&mov_buff_28,&mov_buff_29};
 
 static hallef_cube_t cube_data_struct_values = {0}; //contains the readings after an iteration, will be used to trigger the moving averaging
 static hallef_cube_t cube_data_struct_values_lowpass = {0}; //contains the low passed values
@@ -209,26 +196,147 @@ static void idle_state_handle(void)
     }
 }
 
-
-/**
- * @brief Function for reading data from temperature sensor.
- */
-static void read_sensor_data()
+int32_t conv_acc_data(int16_t input, uint16_t acc_sensitivity)
 {
-    m_xfer_done = false;
-    volatile ret_code_t err_code;
-    uint8_t reg[1] = {MPU6050_DATA_START_ADDR};
+    float input_f = (float)input;
+    input_f = input_f * acc_sensitivity / 32768;
+    return (int32_t)(input_f * 1000);
+}
 
-    err_code = nrf_drv_twi_tx(&m_twi, MPU6050_ADDR, reg, sizeof(reg), true);
-    APP_ERROR_CHECK(err_code);
-    while (m_xfer_done == false)
+typedef enum{
+  BUTTONS_PRESS_START,
+  BUTTONS_PRESS_STRONGER,
+  BUTTONS_PRESS_RELEASE
+}buttonPressEvent_e;
+
+void buttonPressEvent(buttonPressEvent_e eventType, uint8_t buttonIndex, uint8_t buttonState)
+{
+    static char eventMessage[50] = {0};
+
+    switch(eventType)
     {
-    
+        case BUTTONS_PRESS_START:
+            sprintf(eventMessage,"START ON %i STATE %i.\r\n", buttonIndex, buttonState);
+        break;
+        case BUTTONS_PRESS_STRONGER:
+            sprintf(eventMessage,"STRONGER ON %i STATE %i.\r\n", buttonIndex, buttonState);
+        break;
+        case BUTTONS_PRESS_RELEASE:
+            sprintf(eventMessage,"RELEASE ON %i STATE %i.\r\n", buttonIndex, buttonState);
+        break;
+        default:
+        break;
+
     }
-    /* Read 14 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
-    err_code = nrf_drv_twi_rx(&m_twi, MPU6050_ADDR, m_sample, sizeof(m_sample)); 
-    m_xfer_done = false;
-    APP_ERROR_CHECK(err_code);
+    //USB_main_write(eventMessage,50);
+}
+
+void buttonEventChecker(void)
+{
+    int16_t difference;
+    int8_t index;
+    uint8_t i,k = 0;
+    for(k = 0; k < HALLEF_SIDES; k++)
+    {
+        for(i = 0; i < HALLEF_SENSOR_P_SIDE; i++)
+        {
+            index = buttonPressBuffer[k*4+i][5];
+            difference = cube_data_struct_values_lowpass.sides[k].sensors_measurement[i] - cube_data_struct_config.sides[k].sensors_measurement[i];
+            if(difference >= BUTTON_STRONG_PRESS_THRESHOLD)
+            {
+                buttonPressBuffer[k*4+i][index] = 3;
+            }
+            else if(difference >= BUTTON_NORMAL_PRESS_THRESHOLD)
+            {
+                buttonPressBuffer[k*4+i][index] = 2;
+            }
+            else if(difference >= BUTTON_WEAK_PRESS_THRESHOLD)
+            {
+                buttonPressBuffer[k*4+i][index] = 1;
+            }
+            else
+            {
+                buttonPressBuffer[k*4+i][index] = 0;
+            }
+
+            
+
+            //update state
+
+            //event detection
+
+            // 0 x x & s=0 button press start event send strength with event
+            if(buttonPressBuffer[k*4+i][6] == 0)
+            {
+                //if state is 0
+                if(buttonPressBuffer[k*4+i][index] != 0)
+                {
+                    index--;
+                    if(index < 0)
+                    {
+                        index += BUTTONPRESSBUFFERDATASIZE;
+                    }
+                    //if state is 0
+                    if(buttonPressBuffer[k*4+i][index] != 0)
+                    {
+                        //press has been going on for 2 cycles
+
+                        //send event
+                        index = buttonPressBuffer[k*4+i][5];
+                        buttonPressBuffer[k*4+i][6] = buttonPressBuffer[k*4+i][index];
+                        buttonPressEvent(BUTTONS_PRESS_START, k*4+i, buttonPressBuffer[k*4+i][6]); 
+                    }
+                }
+            }
+            else
+            {
+                //button press ongoing
+                if(buttonPressBuffer[k*4+i][index] > buttonPressBuffer[k*4+i][6])
+                {
+                    //current step bigger than state recognised
+                    uint8_t curr_state = buttonPressBuffer[k*4+i][index];
+                    index--;
+                    if(index < 0)
+                    {
+                        index += BUTTONPRESSBUFFERDATASIZE;
+                    }
+                    if(buttonPressBuffer[k*4+i][index] > buttonPressBuffer[k*4+i][6])
+                    {
+                        //prev_step bigger or equal than state
+                        if(curr_state == buttonPressBuffer[k*4+i][index])
+                        {
+                            //if the button state has been the same for 2 cycles
+                            buttonPressBuffer[k*4+i][6] = curr_state;
+                            buttonPressEvent(BUTTONS_PRESS_STRONGER, k*4+i, buttonPressBuffer[k*4+i][6]);
+                        }
+                    }
+                }
+                else if(buttonPressBuffer[k*4+i][index] == 0)
+                {
+                    //no press
+                    index--;
+                    if(index < 0)
+                    {
+                        index += BUTTONPRESSBUFFERDATASIZE;
+                    }
+                    if(buttonPressBuffer[k*4+i][index] == 0)
+                    {
+                        //no press a cycle ago
+                        buttonPressBuffer[k*4+i][6] = 0;
+                        buttonPressEvent(BUTTONS_PRESS_RELEASE, k*4+i, buttonPressBuffer[k*4+i][6]);
+                    }
+                }
+            }
+
+            //housekeeping
+            buttonPressBuffer[k*4+i][5]++;
+            if(buttonPressBuffer[k*4+i][5] >= BUTTONPRESSBUFFERDATASIZE)
+            {
+                buttonPressBuffer[k*4+i][5] = 0;
+            }
+            
+        }
+    }
 }
 
 void periodicTimerHandler(void * p_context)
@@ -246,6 +354,8 @@ void periodicTimerHandler(void * p_context)
       //change button led colours
       uint16_t measurement;
       int16_t difference = 0;
+      float luminosity = 0;
+      ACCEL_get_data(&accelerometer_data);
 
      
       for(k = 0; k < HALLEF_SIDES; k++)
@@ -267,24 +377,173 @@ void periodicTimerHandler(void * p_context)
               break;
 
               case CUBE_STATE_RUNNING:
-                  difference = cube_data_struct_values_lowpass.sides[k].sensors_measurement[i] - cube_data_struct_config.sides[k].sensors_measurement[i];
-                  if(difference >= BUTTON_STRONG_PRESS_THRESHOLD)
+                  switch(buttonPressBuffer[k*4+i][6])
                   {
-                      ledColours[k*4+i].RED = 255;
+                      case 3:
+                          ledColours[k*4+i].RED = 255;
+                      break;
+                      case 2:
+                          ledColours[k*4+i].RED = 255;
+                          ledColours[k*4+i].GREEN = 255;
+                      break;
+                      case 1:
+                          ledColours[k*4+i].GREEN = 255;
+                      break;
+                      default:
+                          ledColours[k*4+i].BLUE = 120;
+                      break;
                   }
-                  else if(difference >= BUTTON_NORMAL_PRESS_THRESHOLD)
+                  //lateral acceleration colours
+                  #if 0                  
+                  switch(k)
                   {
-                      ledColours[k*4+i].RED = 255;
-                      ledColours[k*4+i].GREEN = 255;
+                      case 0:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.accY,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
+                      case 1:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.accZ,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(200 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(127 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * -luminosity);
+                          }
+                      break;
+                      case 2:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.accX,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
+                      case 3:
+                          luminosity = ((float)conv_acc_data(accelerometer_data.accZ,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(200 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(127 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * -luminosity);
+                          }
+                      break;
+                      case 4:
+                          luminosity = ((float)conv_acc_data(accelerometer_data.accX,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
+                      case 5:
+                          luminosity = ((float)conv_acc_data(accelerometer_data.accY,2))/2000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
+
                   }
-                  else if(difference >= BUTTON_WEAK_PRESS_THRESHOLD)
+                  #endif
+                  //angular acceleration colours
+                  #if 0
+                  switch(k)
                   {
-                      ledColours[k*4+i].GREEN = 255;
+                      case 0:
+                      case 5:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.rotY,250))/250000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(120 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
+                      case 1:
+                      case 3:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.rotZ,250))/250000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(200 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(127 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * -luminosity);
+                          }
+                      break;
+                      case 2:
+                      case 4:
+                          luminosity = ((float)-conv_acc_data(accelerometer_data.rotX,250))/250000;
+                          if(luminosity > 0)
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(255 * luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(0 * luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(0 * luminosity);
+                          }
+                          else
+                          {
+                              ledColours[k*4+i].RED = (uint8_t)(0 * -luminosity);
+                              ledColours[k*4+i].GREEN = (uint8_t)(255 * -luminosity);
+                              ledColours[k*4+i].BLUE = (uint8_t)(255 * -luminosity);
+                          }
+                      break;
                   }
-                  else
-                  {
-                      ledColours[k*4+i].BLUE = 100;
-                  }
+                  #endif
               break;
 
               default:
@@ -306,20 +565,30 @@ void periodicTimerHandler(void * p_context)
               {
                   for(i = 0; i < HALLEF_SENSOR_P_SIDE; i++)
                   {
-                      average = ((float)averaging_buffer[k*4+i])/(float)(cube_startup_counter-1);
+                      average = ((float)averaging_buffer[k*4+i])/(float)(cube_startup_counter+1);
                       cube_data_struct_config.sides[k].sensors_measurement[i] = (uint16_t)average;
                   }
               }
           }
       }
 
+
+
       ws2812b_shiftout(ledColours,NUMLEDS);
 
       //send sensor data for visualisation in arduino serial plotter
       memset(status,0,50);
+      
 
+      //pointless, it just ruins data especially lateral acceleration data
+      //accelerometer_data_lp.accX = movavg(accelerometer_data.accX,movavg_structs_acc[0]);
+      //accelerometer_data_lp.accY = movavg(accelerometer_data.accY,movavg_structs_acc[1]);
+      //accelerometer_data_lp.accZ = movavg(accelerometer_data.accZ,movavg_structs_acc[2]);
+      //accelerometer_data_lp.rotX = movavg(accelerometer_data.rotX,movavg_structs_acc[3]);
+      //accelerometer_data_lp.rotY = movavg(accelerometer_data.rotY,movavg_structs_acc[4]);
+      //accelerometer_data_lp.rotZ = movavg(accelerometer_data.rotZ,movavg_structs_acc[5]);
       #define SIDE 0 
-      #if 1
+      #if 0
       sprintf(status,"%i,%i,%i,%i\r\n",
         cube_data_struct_values_lowpass.sides[SIDE].sensors_measurement[0],
         cube_data_struct_values_lowpass.sides[SIDE].sensors_measurement[1],
@@ -327,33 +596,57 @@ void periodicTimerHandler(void * p_context)
         cube_data_struct_values_lowpass.sides[SIDE].sensors_measurement[3]);
       
       #endif
+      #if 1
+      sprintf(status,"%i,%i\r\n",
+        cube_data_struct_values_lowpass.sides[SIDE].sensors_measurement[0],
+        cube_data_struct_config.sides[SIDE].sensors_measurement[0]);
+      
+      #endif
 
       #if 0
       sprintf(status,"%i,%i,%i\r\n",
-        accX, accY, accZ);
-      ret_code_t ret = app_usbd_cdc_acm_write(&m_app_cdc_acm,
-                                              status,
-                                              50);
+        conv_acc_data(accelerometer_data.accX,2), conv_acc_data(accelerometer_data.accY,2), conv_acc_data(accelerometer_data.accZ,2));
 
       #endif
       #if 0
       sprintf(status,"%i,%i,%i\r\n",
-        rotX, rotY, rotZ);
-      ret_code_t ret = app_usbd_cdc_acm_write(&m_app_cdc_acm,
-                                              status,
-                                              50);
+        conv_acc_data(accelerometer_data.rotX,250), conv_acc_data(accelerometer_data.rotY,250), conv_acc_data(accelerometer_data.rotZ,250));
 
       #endif
       #if 0
       sprintf(status,"%i\r\n",
-        temp);
+        accelerometer_data.temp);
       #endif
 
       USB_main_write(status,50);
 
       //new reading
       HF_initiate_reading_all();
-      read_sensor_data();
+      ACCEL_read();
+    }
+
+    if(counter % 15 == 0)
+    {
+        // 75 ms
+        buttonEventChecker();
+    }
+
+    if(counter % 25 == 0)
+    {
+        //125ms
+         
+    }
+
+    if(counter % 50 == 0)
+    {
+        //250 ms
+        cube_data_struct.acc_x = conv_acc_data(accelerometer_data.accX,2);
+        cube_data_struct.acc_y = conv_acc_data(accelerometer_data.accY,2);
+        cube_data_struct.acc_z = conv_acc_data(accelerometer_data.accZ,2);
+        cube_data_struct.gyro_x = conv_acc_data(accelerometer_data.rotX,250);
+        cube_data_struct.gyro_y = conv_acc_data(accelerometer_data.rotY,250);
+        cube_data_struct.gyro_z = conv_acc_data(accelerometer_data.rotZ,250);
+        cube_data_write(&cube_data_struct);
     }
 
     if(counter % 200 == 0)
@@ -381,81 +674,22 @@ void adc_read_finished_handler(void)
 
     for(side = 0; side < 6; side++)
     {
-      for(button = 0; button < 4; button++)
-      {
-          index = (side * 4) + button; //0-23
-          measurement = cube_data_struct_values.sides[side].sensors_measurement[button];
-          measurement = (uint16_t)movavg(measurement,movavg_structs[index]);
-          cube_data_struct_values_lowpass.sides[side].sensors_measurement[button] = measurement;
-      }
+        for(button = 0; button < 4; button++)
+        {
+            index = (side * 4) + button; //0-23
+            measurement = cube_data_struct_values.sides[side].sensors_measurement[button];
+            measurement = (uint16_t)movavg(measurement,movavg_structs[index]);
+            cube_data_struct_values_lowpass.sides[side].sensors_measurement[button] = measurement;
+        }
     }
 }
 
-
-/**
- * @brief TWI events handler.
- */
-void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
-{
-    switch (p_event->type)
-    {
-        case NRF_DRV_TWI_EVT_DONE:
-            if (p_event->xfer_desc.type == NRF_DRV_TWI_XFER_RX)
-            {
-                accX = m_sample[0] << 8 | m_sample[1];
-                accY = m_sample[2] << 8 | m_sample[3];
-                accZ = m_sample[4] << 8 | m_sample[5];
-                temp = m_sample[6] << 8 | m_sample[7];
-                rotX = m_sample[8] << 8 | m_sample[9];
-                rotY = m_sample[10] << 8 | m_sample[11];
-                rotZ = m_sample[12] << 8 | m_sample[13];
-            }
-            m_xfer_done = true;
-            break;
-        default:
-            break;
-    }
-}
-
-//turn the accelerometer on
-void acc_turn_on()
-{
-    ret_code_t err_code;
-    /* Writing to MPU6050 PWR_MGMT_1  "0" to wake the ACCmeter up. */
-    uint8_t reg[2] = {MPU6050_PWR_ADDR, 0};
-    err_code = nrf_drv_twi_tx(&m_twi, MPU6050_ADDR, reg, sizeof(reg), false);
-    APP_ERROR_CHECK(err_code);
-    while (m_xfer_done == false);
-
-}
-
-/**
- * @brief I2C initialization.
- */
-void twi_init (void)
-{
-    ret_code_t err_code;
-
-    const nrf_drv_twi_config_t twi_mpu6050_config = {
-       .scl                = SCL_PIN,
-       .sda                = SDA_PIN,
-       .frequency          = NRF_DRV_TWI_FREQ_100K,
-       .interrupt_priority = APP_IRQ_PRIORITY_HIGH,
-       .clear_bus_init     = false
-    };
-
-    err_code = nrf_drv_twi_init(&m_twi, &twi_mpu6050_config, twi_handler, NULL);
-    APP_ERROR_CHECK(err_code);
-
-    nrf_drv_twi_enable(&m_twi);
-}
 
 void backdoor_command_received_callback(char * dataOut, uint16_t bufferSize, uint8_t source)
 {
     NRF_LOG_INFO("Data rec");
     BLE_nus_send_string(dataOut,bufferSize);
 }
-
 
 
 
@@ -468,7 +702,7 @@ int main(void)
     leds_init();
     timers_init();
     buttons_init();
-    twi_init();
+    ACCEL_init();
     USB_main_serial_gen();
     
     apa12led_init(DOT_DATA, DOT_CLK);
@@ -483,7 +717,7 @@ int main(void)
     app_timer_init();
     app_timer_create(&my_timer_id, APP_TIMER_MODE_REPEATED, periodicTimerHandler);
     app_timer_start(my_timer_id,50,NULL);
-    acc_turn_on();
+    ACCEL_start();
     // Start execution.
     USB_main_power_enable();
     BLE_advertising_start();

@@ -11,7 +11,7 @@
 
 #define ENDLINE_STRING "\r\n"
 #define DEVICE_NAME                     "Cube Project Test"                         /**< Name of device. Will be included in the advertising data. */
-#define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
+#define CUBE_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
 #define APP_ADV_INTERVAL                64                                      /**< The advertising interval (in units of 0.625 ms; this value corresponds to 40 ms). */
 #define APP_ADV_DURATION                BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED   /**< The advertising time-out (in units of seconds). When set to 0, we will never time out. */
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)        /**< Minimum acceptable connection interval (0.5 seconds). */
@@ -24,6 +24,7 @@
 
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
+BLE_CUBE_DEF(m_cube);
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 
 
@@ -36,7 +37,7 @@ static char m_nus_data_array[BLE_NUS_MAX_DATA_LEN];
 
 static ble_uuid_t m_adv_uuids[]          =                                          /**< Universally unique service identifier. */
 {
-    {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
+    {BLE_UUID_CUBE_SERVICE, CUBE_SERVICE_UUID_TYPE}
 };
 
 
@@ -124,7 +125,7 @@ static void advertising_init(void)
     ble_advdata_t advdata;
     ble_advdata_t srdata;
 
-    ble_uuid_t adv_uuids[] = {{BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}};
+    ble_uuid_t adv_uuids[] = {{BLE_UUID_CUBE_SERVICE, CUBE_SERVICE_UUID_TYPE}};
 
     // Build and set advertising data.
     memset(&advdata, 0, sizeof(advdata));
@@ -252,6 +253,16 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
     }
 }
 
+static void cube_data_handler(ble_cube_evt_t * p_evt)
+{
+    
+}
+
+void cube_data_write(ble_cube_data_struct_t * data_struct)
+{
+    ble_cube_data_send(&m_cube,data_struct,m_conn_handle);
+}
+
 
 /**@brief Function for initializing services that will be used by the application.
  */
@@ -260,6 +271,7 @@ static void services_init(void)
     ret_code_t         err_code;
     nrf_ble_qwr_init_t qwr_init = {0};
     ble_nus_init_t nus_init = {0};
+    ble_cube_init_t cube_init = {0};
     
     // Initialize Queued Write Module.
     qwr_init.error_handler = nrf_qwr_error_handler;
@@ -273,6 +285,14 @@ static void services_init(void)
     nus_init.data_handler = nus_data_handler;
 
     err_code = ble_nus_init(&m_nus, &nus_init);
+    APP_ERROR_CHECK(err_code);
+
+    // Initialise CUBE service
+    memset(&cube_init, 0, sizeof(cube_init));
+
+    cube_init.data_handler = cube_data_handler;
+
+    err_code = ble_cube_init(&m_cube, &cube_init);
     APP_ERROR_CHECK(err_code);
 }
 

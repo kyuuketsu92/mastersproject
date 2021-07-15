@@ -122,12 +122,18 @@
         <folder Name="MATH">
           <file file_name="../../../../../../../SRC/movavg.c" />
         </folder>
+        <folder Name="Accelerometer">
+          <file file_name="../../../../../../../SRC/accelerometer.c" />
+        </folder>
       </folder>
       <folder Name="Driver">
         <file file_name="../../../../../../../SRC/adc_driver.c" />
       </folder>
       <folder Name="BLE">
         <file file_name="../../../../../../../SRC/BLE_main.c" />
+        <folder Name="CUBE SERVICE">
+          <file file_name="../../../../../../../SRC/ble_cube_srv.c" />
+        </folder>
       </folder>
       <folder Name="USB">
         <file file_name="../../../../../../../SRC/usb_main.c" />
