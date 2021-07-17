@@ -11638,6 +11638,13 @@
 #define BLE_NUS_BLE_OBSERVER_PRIO 2
 #endif
 
+// <o> BLE_CUBE_BLE_OBSERVER_PRIO  
+// <i> Priority with which BLE events are dispatched to the CUBE Service.
+
+#ifndef BLE_CUBE_BLE_OBSERVER_PRIO
+#define BLE_CUBE_BLE_OBSERVER_PRIO 2
+#endif
+
 // <o> BLE_NUS_C_BLE_OBSERVER_PRIO  
 // <i> Priority with which BLE events are dispatched to the UART Central Service.
 

@@ -23,6 +23,7 @@
       debug_target_connection="J-Link"
       gcc_debugging_level="Level 3"
       gcc_entry_point="Reset_Handler"
+      gcc_optimization_level="Level 0"
       linker_output_format="hex"
       linker_printf_fmt_level="long"
       linker_printf_width_precision_supported="Yes"
@@ -106,20 +107,14 @@
       <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_twi.c" />
     </folder>
     <folder Name="Application">
-      <file file_name="../../../main.c">
-        <configuration Name="Common" gcc_optimization_level="Level 0" />
-      </file>
+      <file file_name="../../../main.c" />
       <file file_name="../config/sdk_config.h" />
       <folder Name="LIB">
         <folder Name="APA12">
-          <file file_name="apa12.c">
-            <configuration Name="Release" build_exclude_from_build="No" />
-          </file>
+          <file file_name="apa12.c" />
         </folder>
         <folder Name="WS2812B">
-          <file file_name="../../../../../../../SRC/ws2812b.c">
-            <configuration Name="Release" gcc_optimization_level="None" />
-          </file>
+          <file file_name="../../../../../../../SRC/ws2812b.c" />
         </folder>
         <folder Name="Hall Effect Inquiry">
           <file file_name="../../../../../../../SRC/hallEffect.c" />
@@ -127,9 +122,24 @@
         <folder Name="MATH">
           <file file_name="../../../../../../../SRC/movavg.c" />
         </folder>
+        <folder Name="Accelerometer">
+          <file file_name="../../../../../../../SRC/accelerometer.c" />
+        </folder>
+        <folder Name="timing_lib">
+          <file file_name="../../../../../../../SRC/timing_lib.c" />
+        </folder>
       </folder>
       <folder Name="Driver">
         <file file_name="../../../../../../../SRC/adc_driver.c" />
+      </folder>
+      <folder Name="BLE">
+        <file file_name="../../../../../../../SRC/BLE_main.c" />
+        <folder Name="CUBE SERVICE">
+          <file file_name="../../../../../../../SRC/ble_cube_srv.c" />
+        </folder>
+      </folder>
+      <folder Name="USB">
+        <file file_name="../../../../../../../SRC/usb_main.c" />
       </folder>
     </folder>
     <folder Name="nRF_Segger_RTT">
