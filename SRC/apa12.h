@@ -1,9 +1,14 @@
-#include "app_error.h"
+//Module for handling the communcation with the RGB led on the board
+//it is practically a one way SPI protocol
 
+//Module prefix: apa12led_
 
-
+//singe inclusion definition
 #ifndef __APA12_H
 #define __APA12_H
+
+
+#include "app_error.h"
 
 
 

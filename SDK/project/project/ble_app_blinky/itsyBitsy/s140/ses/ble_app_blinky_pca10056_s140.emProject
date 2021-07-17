@@ -125,6 +125,9 @@
         <folder Name="Accelerometer">
           <file file_name="../../../../../../../SRC/accelerometer.c" />
         </folder>
+        <folder Name="timing_lib">
+          <file file_name="../../../../../../../SRC/timing_lib.c" />
+        </folder>
       </folder>
       <folder Name="Driver">
         <file file_name="../../../../../../../SRC/adc_driver.c" />

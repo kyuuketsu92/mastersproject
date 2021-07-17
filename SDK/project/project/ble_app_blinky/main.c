@@ -4,9 +4,9 @@
 #include "nrf.h"
 #include "usb_main.h"
 #include "accelerometer.h"
+#include "timing_lib.h"
 
 #include "boards.h"
-#include "app_timer.h"
 
 #include "nrf_pwr_mgmt.h"
 #include "apa12.h"
@@ -135,18 +135,6 @@ static void leds_init(void)
 }
 
 
-/**@brief Function for the Timer initialization.
- *
- * @details Initializes the timer module.
- */
-static void timers_init(void)
-{
-    // Initialize timer module, making it use the scheduler
-    ret_code_t err_code = app_timer_init();
-    APP_ERROR_CHECK(err_code);
-}
-
-
 /**@brief Function for initializing the button handler module.
  */
 static void buttons_init(void)
@@ -228,7 +216,7 @@ void buttonPressEvent(buttonPressEvent_e eventType, uint8_t buttonIndex, uint8_t
         break;
 
     }
-    //USB_main_write(eventMessage,50);
+    USB_main_write(eventMessage,50);
 }
 
 void buttonEventChecker(void)
@@ -346,7 +334,7 @@ void periodicTimerHandler(void * p_context)
     int16_t j = 0;
     int16_t k = 0;
 
-    if(counter % 5 == 0)
+    if(counter % 1 == 0)
     {
         //25msec
         static char status[50] = {0};
@@ -618,26 +606,26 @@ void periodicTimerHandler(void * p_context)
         accelerometer_data.temp);
       #endif
 
-      USB_main_write(status,50);
+      //USB_main_write(status,50);
 
       //new reading
       HF_initiate_reading_all();
       ACCEL_read();
     }
 
-    if(counter % 15 == 0)
+    if(counter % 3 == 0)
     {
         // 75 ms
         buttonEventChecker();
     }
 
-    if(counter % 25 == 0)
+    if(counter % 5 == 0)
     {
         //125ms
          
     }
 
-    if(counter % 50 == 0)
+    if(counter % 10 == 0)
     {
         //250 ms
         cube_data_struct.acc_x = conv_acc_data(accelerometer_data.accX,2);
@@ -649,7 +637,7 @@ void periodicTimerHandler(void * p_context)
         cube_data_write(&cube_data_struct);
     }
 
-    if(counter % 200 == 0)
+    if(counter % 40 == 0)
     {
         //1sec
         
@@ -657,7 +645,7 @@ void periodicTimerHandler(void * p_context)
 
     //housekeeping
     counter++;
-    if(counter >= 1000 )
+    if(counter >= 200 )
     {
         counter = 0;
     }
@@ -700,7 +688,7 @@ int main(void)
     // Initialize.
     log_init();
     leds_init();
-    timers_init();
+    //or timing might start here
     buttons_init();
     ACCEL_init();
     USB_main_serial_gen();
@@ -714,9 +702,10 @@ int main(void)
     power_management_init();
     BLE_main_initialise();
     BLE_register_nus_callback(backdoor_command_received_callback);
-    app_timer_init();
-    app_timer_create(&my_timer_id, APP_TIMER_MODE_REPEATED, periodicTimerHandler);
-    app_timer_start(my_timer_id,50,NULL);
+    //app_timer_init(); <= wass called twice???
+    timing_lib_initialise();
+    timing_lib_register_flagged_event(TIMING_LIB_25MS,&periodicTimerHandler);
+    timing_lib_start();
     ACCEL_start();
     // Start execution.
     USB_main_power_enable();
@@ -732,6 +721,7 @@ int main(void)
         {
             /* Nothing to do */
         }
+        timing_lib_handle_flagged_events();
         idle_state_handle();
     }
 }
