@@ -5,16 +5,20 @@
 
 #define BLE_UUID_CUBE_GAME_LEVEL_CHARACTERISTIC 0x0002 
 #define BLE_UUID_CUBE_NUM_RETRIES_CHARACTERISTIC 0x0003
-#define BLE_UUID_CUBE_ACC_SENS_CHARACTERISTIC 0x0004
-#define BLE_UUID_CUBE_GYRO_SENS_CHARACTERISTIC 0x0005
-#define BLE_UUID_CUBE_ACC_X_CHARACTERISTIC 0x0006
-#define BLE_UUID_CUBE_ACC_Y_CHARACTERISTIC 0x0007
-#define BLE_UUID_CUBE_ACC_Z_CHARACTERISTIC 0x0008
-#define BLE_UUID_CUBE_GYRO_X_CHARACTERISTIC 0x0009
-#define BLE_UUID_CUBE_GYRO_Y_CHARACTERISTIC 0x000A
-#define BLE_UUID_CUBE_GYRO_Z_CHARACTERISTIC 0x000B
+#define BLE_UUID_CUBE_CURR_LIVES_CHARACTERISTIC 0x0004
+#define BLE_UUID_CUBE_CUBE_SIDES_CHARACTERISTIC 0x0005
+#define BLE_UUID_CUBE_BUTTON_DURATION_CHARACTERISTIC 0x0006
+#define BLE_UUID_CUBE_ACC_X_CHARACTERISTIC 0x0007
+#define BLE_UUID_CUBE_ACC_Y_CHARACTERISTIC 0x0008
+#define BLE_UUID_CUBE_ACC_Z_CHARACTERISTIC 0x0009
+#define BLE_UUID_CUBE_GYRO_X_CHARACTERISTIC 0x000A
+#define BLE_UUID_CUBE_GYRO_Y_CHARACTERISTIC 0x000B
+#define BLE_UUID_CUBE_GYRO_Z_CHARACTERISTIC 0x000C
 
 #define CUBE_BASE_UUID                  {{0xB3, 0xF4, 0x45, 0x68, 0xC1, 0x54, 0x41, 0xD7, 0xBC, 0x98, 0x90, 0xB3, 0x00, 0x00, 0xE1, 0x7B}} /**< Used vendor specific UUID. */
+
+ble_cube_grab_game_logic_callback gameGrabCallback = NULL;
+ble_cube_receive_new_settings_callback gameNewSettingsCallback = NULL;
 
 /**@brief Function for handling the @ref BLE_GAP_EVT_CONNECTED event from the SoftDevice.
  *
@@ -29,6 +33,8 @@ static void on_connect(ble_cube_t * p_cube, ble_evt_t const * p_ble_evt)
     uint8_t                    cccd_value[2];
     ble_cube_client_context_t * p_client = NULL;
     uint8_t                    attribute_value;
+    ble_cube_game_data_struct_t dataStruct = {0};
+    ble_cube_game_data_struct_t dataStructRec = {0};
 
     err_code = blcm_link_ctx_get(p_cube->p_link_ctx_storage,
                                  p_ble_evt->evt.gap_evt.conn_handle,
@@ -180,18 +186,41 @@ static void on_connect(ble_cube_t * p_cube, ble_evt_t const * p_ble_evt)
     }
 
     //let's set the default values for the game settings for now
+
+    //need a way to get the game logic...
+    dataStruct.buttonDisplayDuration = 1;
+    dataStruct.gameLevel = 0;
+    dataStruct.gameLivesMax = 3;
+    dataStruct.gameSides = 6;
+    dataStruct.gameLiveCurr = 3;
+    if(gameGrabCallback != NULL)
+    {
+        dataStructRec = gameGrabCallback();
+        dataStruct.buttonDisplayDuration = dataStructRec.buttonDisplayDuration;
+        dataStruct.gameLevel = dataStructRec.gameLevel;
+        dataStruct.gameLivesMax = dataStructRec.gameLivesMax;
+        dataStruct.gameSides = dataStructRec.gameSides;
+        dataStruct.gameLiveCurr = dataStructRec.gameLiveCurr;
+    }
+
     gatts_val.len = 1;
     gatts_val.offset = 0;
     gatts_val.p_value = &attribute_value;
 
-    attribute_value = 1;
-    sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->acc_sens_handles.value_handle,&gatts_val);
-    attribute_value = 1;
-    sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->gyro_sens_handles.value_handle,&gatts_val);
-    attribute_value = 0;
+    attribute_value = dataStruct.gameLevel;
     sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->game_level_handles.value_handle,&gatts_val);
-    attribute_value = 3;
+
+    attribute_value = dataStruct.gameLivesMax;
     sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->num_retries_handles.value_handle,&gatts_val);
+
+    attribute_value = dataStruct.gameLiveCurr;
+    sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->curr_lives_handles.value_handle,&gatts_val);
+
+    attribute_value = dataStruct.gameSides;
+    sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->game_sides_handles.value_handle,&gatts_val);
+
+    attribute_value = dataStruct.buttonDisplayDuration;
+    sd_ble_gatts_value_set(p_ble_evt->evt.gap_evt.conn_handle, p_cube->button_display_duration_handles.value_handle,&gatts_val);
 }
 
 /**@brief Function for handling the @ref BLE_GATTS_EVT_WRITE event from the SoftDevice.
@@ -205,20 +234,22 @@ static void on_write(ble_cube_t * p_cube, ble_evt_t const * p_ble_evt)
     ble_cube_evt_t                 evt;
     ble_cube_client_context_t    * p_client;
     ble_gatts_evt_write_t const * p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
+    uint8_t needToSendNewSettings = 0;
+    ble_cube_game_data_struct_t dataStructRec = {0};
 
     err_code = blcm_link_ctx_get(p_cube->p_link_ctx_storage,
                                  p_ble_evt->evt.gatts_evt.conn_handle,
                                  (void *) &p_client);
-    if (err_code != NRF_SUCCESS)
-    {
-        int i = 0;
-        i++; //used as a debug breakpoint
-    }
 
     memset(&evt, 0, sizeof(ble_cube_evt_t));
     evt.p_cube       = p_cube;
     evt.conn_handle = p_ble_evt->evt.gatts_evt.conn_handle;
     evt.p_link_ctx  = p_client;
+
+    if(gameGrabCallback != NULL)
+    {
+        dataStructRec = gameGrabCallback();
+    }
 
     //CCCD
     //ACC X
@@ -375,6 +406,12 @@ static void on_write(ble_cube_t * p_cube, ble_evt_t const * p_ble_evt)
         evt.params.rx_data.length = p_evt_write->len;
 
         p_cube->data_handler(&evt);
+        needToSendNewSettings = 1;
+        if(gameGrabCallback != NULL)
+        {
+            dataStructRec.gameLevel = *evt.params.rx_data.p_data;
+        }
+
     }
     //NUM RETRIES
     else if ((p_evt_write->handle == p_cube->num_retries_handles.value_handle) &&
@@ -385,30 +422,56 @@ static void on_write(ble_cube_t * p_cube, ble_evt_t const * p_ble_evt)
         evt.params.rx_data.length = p_evt_write->len;
 
         p_cube->data_handler(&evt);
+        needToSendNewSettings = 1;
+        if(gameGrabCallback != NULL)
+        {
+            dataStructRec.gameLivesMax = *evt.params.rx_data.p_data;
+        }
     }
-    //ACC SENSITIVITY
-    else if ((p_evt_write->handle == p_cube->acc_sens_handles.value_handle) &&
+    //CUBE SIDES
+    else if ((p_evt_write->handle == p_cube->game_sides_handles.value_handle) &&
              (p_cube->data_handler != NULL))
     {
-        evt.type                  = BLE_CUBE_EVT_RX_ACC_SENS;
+        evt.type                  = BLE_CUBE_EVT_RX_CUBE_SIDE;
         evt.params.rx_data.p_data = p_evt_write->data;
         evt.params.rx_data.length = p_evt_write->len;
 
         p_cube->data_handler(&evt);
+        needToSendNewSettings = 1;
+        if(gameGrabCallback != NULL)
+        {
+            dataStructRec.gameSides = *evt.params.rx_data.p_data;
+        }
     }
-    //GYRO SENSITIVITY
-    else if ((p_evt_write->handle == p_cube->gyro_sens_handles.value_handle) &&
+    //BUTTON DUR
+    else if ((p_evt_write->handle == p_cube->button_display_duration_handles.value_handle) &&
              (p_cube->data_handler != NULL))
     {
-        evt.type                  = BLE_CUBE_EVT_RX_GYRO_SENS;
+        evt.type                  = BLE_CUBE_EVT_RX_DISPLAY_DUR;
         evt.params.rx_data.p_data = p_evt_write->data;
         evt.params.rx_data.length = p_evt_write->len;
 
         p_cube->data_handler(&evt);
+        needToSendNewSettings = 1;
+        if(gameGrabCallback != NULL)
+        {
+            dataStructRec.buttonDisplayDuration = *evt.params.rx_data.p_data;
+        }
     }
     else
     {
         // Do Nothing. This event is not relevant for this service.
+    }
+
+    if(needToSendNewSettings != 0)
+    {
+        if(gameGrabCallback != NULL)//we have a struct
+        {
+            if(gameNewSettingsCallback != NULL)
+            {
+                gameNewSettingsCallback(&dataStructRec);
+            }
+        }
     }
 }
 
@@ -520,29 +583,29 @@ uint32_t ble_cube_init(ble_cube_t * p_cube, ble_cube_init_t const * p_cube_init)
         return err_code;
     }
 
-    // Add the ACC sensitivity Characteristic.
+    // Add the CURR LIFE Characteristic.
+    /**@snippet [Adding proprietary characteristic to the SoftDevice] */
     memset(&add_char_params, 0, sizeof(add_char_params));
-    add_char_params.uuid                     = BLE_UUID_CUBE_ACC_SENS_CHARACTERISTIC;
-    add_char_params.uuid_type                = p_cube->uuid_type;
-    add_char_params.max_len                  = 1;
-    add_char_params.init_len                 = sizeof(uint8_t);
-    add_char_params.is_var_len               = false;
-    add_char_params.char_props.write         = 1;
-    add_char_params.char_props.write_wo_resp = 1;
-    add_char_params.char_props.read          = 1;
+    add_char_params.uuid              = BLE_UUID_CUBE_CURR_LIVES_CHARACTERISTIC;
+    add_char_params.uuid_type         = p_cube->uuid_type;
+    add_char_params.max_len           = sizeof(uint8_t);
+    add_char_params.init_len          = sizeof(uint8_t);
+    add_char_params.is_var_len        = false;
+    add_char_params.char_props.notify = 1;
+    add_char_params.char_props.read   = 1;
 
-    add_char_params.read_access  = SEC_OPEN;
-    add_char_params.write_access = SEC_OPEN;
+    add_char_params.read_access       = SEC_OPEN;
+    add_char_params.cccd_write_access = SEC_OPEN;
 
-    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->acc_sens_handles);
+    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->curr_lives_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }
 
-    // Add the GYRO sensitivity Characteristic.
+    // Add the CUBE SIDE characteristics
     memset(&add_char_params, 0, sizeof(add_char_params));
-    add_char_params.uuid                     = BLE_UUID_CUBE_GYRO_SENS_CHARACTERISTIC;
+    add_char_params.uuid                     = BLE_UUID_CUBE_CUBE_SIDES_CHARACTERISTIC;
     add_char_params.uuid_type                = p_cube->uuid_type;
     add_char_params.max_len                  = 1;
     add_char_params.init_len                 = sizeof(uint8_t);
@@ -554,7 +617,27 @@ uint32_t ble_cube_init(ble_cube_t * p_cube, ble_cube_init_t const * p_cube_init)
     add_char_params.read_access  = SEC_OPEN;
     add_char_params.write_access = SEC_OPEN;
 
-    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->gyro_sens_handles);
+    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->game_sides_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+
+    // Add the button duration characteristic.
+    memset(&add_char_params, 0, sizeof(add_char_params));
+    add_char_params.uuid                     = BLE_UUID_CUBE_BUTTON_DURATION_CHARACTERISTIC;
+    add_char_params.uuid_type                = p_cube->uuid_type;
+    add_char_params.max_len                  = 1;
+    add_char_params.init_len                 = sizeof(uint8_t);
+    add_char_params.is_var_len               = false;
+    add_char_params.char_props.write         = 1;
+    add_char_params.char_props.write_wo_resp = 1;
+    add_char_params.char_props.read          = 1;
+
+    add_char_params.read_access  = SEC_OPEN;
+    add_char_params.write_access = SEC_OPEN;
+
+    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->button_display_duration_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
@@ -593,12 +676,6 @@ uint32_t ble_cube_init(ble_cube_t * p_cube, ble_cube_init_t const * p_cube_init)
     add_char_params.read_access       = SEC_OPEN;
     add_char_params.write_access      = SEC_OPEN;
     add_char_params.cccd_write_access = SEC_OPEN;
-
-    err_code = characteristic_add(p_cube->service_handle, &add_char_params, &p_cube->acc_y_handles);
-    if (err_code != NRF_SUCCESS)
-    {
-        return err_code;
-    }
 
     // Add the ACC Z Characteristic.
     /**@snippet [Adding proprietary characteristic to the SoftDevice] */
@@ -854,3 +931,36 @@ uint32_t ble_cube_data_send(ble_cube_t * p_cube,
         write_gyro_z(p_cube,p_data,conn_handle);
     }
 }
+
+
+void ble_cube_registerGameLogicGrabCallback(ble_cube_grab_game_logic_callback callback)
+{
+    gameGrabCallback = callback;
+}
+
+void ble_cube_registerGameLogicNewSettings(ble_cube_receive_new_settings_callback callback)
+{
+    gameNewSettingsCallback = callback;
+}
+
+//////////////////////////////////////////////////////
+uint32_t write_curr_life(ble_cube_t * p_cube,
+                     uint8_t currLife,
+                     uint16_t    conn_handle)
+{
+    ret_code_t                 err_code;
+    ble_gatts_hvx_params_t     hvx_params;
+    uint8_t value = 0;
+    uint16_t length = 1;
+
+    memset(&hvx_params, 0, sizeof(hvx_params));
+    
+    value = currLife;
+    hvx_params.handle = p_cube->curr_lives_handles.value_handle;
+    hvx_params.p_data = &value;
+    hvx_params.p_len  = &length;
+    hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+
+    return sd_ble_gatts_hvx(conn_handle, &hvx_params);
+}
+

@@ -111,7 +111,7 @@
       <file file_name="../config/sdk_config.h" />
       <folder Name="LIB">
         <folder Name="APA12">
-          <file file_name="apa12.c" />
+          <file file_name="../../../../../../../SRC/apa12.c" />
         </folder>
         <folder Name="WS2812B">
           <file file_name="../../../../../../../SRC/ws2812b.c" />
@@ -141,6 +141,7 @@
       <folder Name="USB">
         <file file_name="../../../../../../../SRC/usb_main.c" />
       </folder>
+      <file file_name="../../../../../../../SRC/game_logic.c" />
     </folder>
     <folder Name="nRF_Segger_RTT">
       <file file_name="../../../../../../external/segger_rtt/SEGGER_RTT.c" />
