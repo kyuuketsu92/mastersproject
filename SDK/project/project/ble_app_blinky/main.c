@@ -24,6 +24,7 @@
 #include "BLE_main.h"
 
 #include "movavg.h"
+#include "nrf_drv_rng.h"
 
 #define LEDBUTTON_BUTTON                BSP_BUTTON_0                            /**< Button that will trigger the notification event with the LED Button Service */
 
@@ -97,7 +98,7 @@ static uint8_t buttonPressBuffer [24][BUTTONPRESSBUFFERDATASIZE + 2] = {0}; //0-
 static hallef_cube_t cube_data_struct_values = {0}; //contains the readings after an iteration, will be used to trigger the moving averaging
 static hallef_cube_t cube_data_struct_values_lowpass = {0}; //contains the low passed values
 static hallef_cube_t cube_data_struct_config = {0}; //this is where I'll store the values of the unpressed buttons which for now will be averaged at the start. 
-#define BUTTON_NOISE_THRESHOLD 5
+#define BUTTON_NOISE_THRESHOLD 10
 #define BUTTON_WEAK_PRESS_THRESHOLD BUTTON_NOISE_THRESHOLD
 #define BUTTON_NORMAL_PRESS_THRESHOLD BUTTON_WEAK_PRESS_THRESHOLD + 10
 #define BUTTON_STRONG_PRESS_THRESHOLD BUTTON_NORMAL_PRESS_THRESHOLD + 10
@@ -310,8 +311,8 @@ void buttonEventChecker(void)
                     if(buttonPressBuffer[k*4+i][index] == 0)
                     {
                         //no press a cycle ago
+                        buttonPressEvent(BUTTONS_PRESS_RELEASE, k*4+i, buttonPressBuffer[k*4+i][6]);                        
                         buttonPressBuffer[k*4+i][6] = 0;
-                        buttonPressEvent(BUTTONS_PRESS_RELEASE, k*4+i, buttonPressBuffer[k*4+i][6]);
                     }
                 }
             }
@@ -357,6 +358,14 @@ void writeLEDs(void * p_context) // 25 ms (blocking)
 void readHallEffectSensors(void * p_context) //25ms
 {
     HF_initiate_reading_all();
+}
+
+uint8_t randSeedGen(void)
+{
+    uint8_t value;
+    nrf_drv_rng_block_rand(&value,1);
+
+    return value;
 }
 
 void adc_read_finished_handler(void)
@@ -464,6 +473,11 @@ void update(void * p_context)
     gamelogic_update();
 }
 
+void oneSecond_gamelogic_update(void * p_context)
+{
+    gamelogic_second_has_passed_flag_set();
+}
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -475,7 +489,8 @@ int main(void)
     buttons_init();
     ACCEL_init();
     USB_main_serial_gen();
-    
+    nrf_drv_rng_config_t config = NRF_DRV_RNG_DEFAULT_CONFIG;
+    nrf_drv_rng_init(&config);
     apa12led_init(DOT_DATA, DOT_CLK);
     apa12led_clear();
     HF_initialise(MO,SCK,MI,CSPINS,&cube_data_struct_values,adc_read_finished_handler);
@@ -491,7 +506,8 @@ int main(void)
         .ledArray = ledColours,
         .ledCount = 24,
         .ble_update_callback = ble_update_life,
-        .calibrate_callback = calibrateCallback
+        .calibrate_callback = calibrateCallback,
+        .randseedgen_callback = randSeedGen,
     };
     gamelogic_init(&game_init);
     //app_timer_init(); <= wass called twice???
@@ -500,6 +516,7 @@ int main(void)
     timing_lib_register_flagged_event(TIMING_LIB_25MS,&readHallEffectSensors);
     timing_lib_register_flagged_event(TIMING_LIB_25MS,&getAccelerometerData);
     timing_lib_register_blocking_event(TIMING_LIB_25MS,&writeLEDs);
+    timing_lib_register_blocking_event(TIMING_LIB_1000MS,&oneSecond_gamelogic_update);
     timing_lib_register_flagged_event(TIMING_LIB_25MS,&update);
 
     timing_lib_register_flagged_event(TIMING_LIB_250MS,&writeAccelerometerDataToBLE);

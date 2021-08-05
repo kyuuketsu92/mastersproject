@@ -52,12 +52,14 @@ typedef struct{
 
 typedef void (* gamelogic_alert_user_curr_life_changed_callback) (uint8_t currLife);
 typedef bool (* gamelogic_external_calibration_process_callback) (bool newCalibrate);
+typedef uint8_t (* randomSeedGen_callback) (void); 
 
 typedef  struct{
     WS2812B_LED * ledArray;
     uint8_t ledCount;
     gamelogic_alert_user_curr_life_changed_callback ble_update_callback;
     gamelogic_external_calibration_process_callback calibrate_callback;
+    randomSeedGen_callback randseedgen_callback;
 }gamelogic_init_struct_t; 
 
 //I need a way to tell main what LED state this module wants
@@ -68,6 +70,6 @@ void gamelogic_init(gamelogic_init_struct_t * init_struct);
 void gamelogic_newSettings(gamelogic_data_struct_t * new_settings);
 void gamelogic_update(void);
 void gamelogic_button_state_change_event(uint8_t button_index, uint8_t new_state, uint8_t prev_state);
-
+void gamelogic_second_has_passed_flag_set();
 
 #endif

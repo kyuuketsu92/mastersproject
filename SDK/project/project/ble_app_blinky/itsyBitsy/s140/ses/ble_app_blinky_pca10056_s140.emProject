@@ -105,6 +105,9 @@
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_twi.c" />
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_twim.c" />
       <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_twi.c" />
+      <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_rng.c" />
+      <file file_name="../../../../../../components/libraries/queue/nrf_queue.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_rng.c" />
     </folder>
     <folder Name="Application">
       <file file_name="../../../main.c" />
