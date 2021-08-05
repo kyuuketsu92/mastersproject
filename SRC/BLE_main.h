@@ -45,6 +45,7 @@ void BLE_nus_send_string(char * dataOut, uint16_t bufferSize);
 
 //function wrapper for sending the accelerometer data
 void cube_data_write(ble_cube_data_struct_t * data_struct);
+void BLE_send_curr_lives(uint8_t value);
 
 
 #endif

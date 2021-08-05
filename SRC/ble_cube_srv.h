@@ -54,8 +54,8 @@ typedef enum
 {
     BLE_CUBE_EVT_RX_GAME_LEVEL,      /**< Data received. */
     BLE_CUBE_EVT_RX_RETRIES_COUNT,   /**< Data received. */
-    BLE_CUBE_EVT_RX_ACC_SENS,        /**< Data received. */
-    BLE_CUBE_EVT_RX_GYRO_SENS,       /**< Data received. */
+    BLE_CUBE_EVT_RX_CUBE_SIDE,        /**< Data received. */
+    BLE_CUBE_EVT_RX_DISPLAY_DUR,       /**< Data received. */
     BLE_CUBE_EVT_COMM_STARTED_ACC_X, /**< Notification has been enabled. */
     BLE_CUBE_EVT_COMM_STARTED_ACC_Y, /**< Notification has been enabled. */
     BLE_CUBE_EVT_COMM_STARTED_ACC_Z, /**< Notification has been enabled. */
@@ -124,8 +124,9 @@ struct ble_cube_s
     uint16_t                        service_handle;     /**< Handle of Nordic UART Service (as provided by the SoftDevice). */
     ble_gatts_char_handles_t        game_level_handles; 
     ble_gatts_char_handles_t        num_retries_handles; 
-    ble_gatts_char_handles_t        acc_sens_handles;
-    ble_gatts_char_handles_t        gyro_sens_handles;
+    ble_gatts_char_handles_t        curr_lives_handles;
+    ble_gatts_char_handles_t        game_sides_handles;
+    ble_gatts_char_handles_t        button_display_duration_handles;
     ble_gatts_char_handles_t        acc_x_handles;
     ble_gatts_char_handles_t        acc_y_handles;
     ble_gatts_char_handles_t        acc_z_handles;
@@ -145,6 +146,18 @@ typedef struct{
     int32_t gyro_z;
 }ble_cube_data_struct_t;
 
+typedef struct{
+    uint8_t gameLevel; // 0,1,2,3
+    uint8_t gameLivesMax; // 1-10
+    uint8_t gameLiveCurr; 
+    uint8_t gameSides; //1-6
+    uint8_t buttonDisplayDuration; //1-30
+}ble_cube_game_data_struct_t;
+
+//callback to get game settings callback
+typedef ble_cube_game_data_struct_t (* ble_cube_grab_game_logic_callback) (void);
+typedef void (* ble_cube_receive_new_settings_callback) (ble_cube_game_data_struct_t * newSettings);
+
 ///////////////////////////////////////////////////////////
 // EXTERNAL FUNCTION DECLARATIONS
 ///////////////////////////////////////////////////////////
@@ -159,6 +172,13 @@ void ble_cube_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
 uint32_t ble_cube_data_send(ble_cube_t * p_cube,
                            ble_cube_data_struct_t   * p_data,
                            uint16_t    conn_handle);
+
+void ble_cube_registerGameLogicGrabCallback(ble_cube_grab_game_logic_callback callback);
+void ble_cube_registerGameLogicNewSettings(ble_cube_receive_new_settings_callback callback);
+
+uint32_t write_curr_life(ble_cube_t * p_cube,
+                     uint8_t currLife,
+                     uint16_t    conn_handle);
 
 #ifdef __cplusplus
 }

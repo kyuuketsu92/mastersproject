@@ -105,13 +105,16 @@
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_twi.c" />
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_twim.c" />
       <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_twi.c" />
+      <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_rng.c" />
+      <file file_name="../../../../../../components/libraries/queue/nrf_queue.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_rng.c" />
     </folder>
     <folder Name="Application">
       <file file_name="../../../main.c" />
       <file file_name="../config/sdk_config.h" />
       <folder Name="LIB">
         <folder Name="APA12">
-          <file file_name="apa12.c" />
+          <file file_name="../../../../../../../SRC/apa12.c" />
         </folder>
         <folder Name="WS2812B">
           <file file_name="../../../../../../../SRC/ws2812b.c" />
@@ -141,6 +144,7 @@
       <folder Name="USB">
         <file file_name="../../../../../../../SRC/usb_main.c" />
       </folder>
+      <file file_name="../../../../../../../SRC/game_logic.c" />
     </folder>
     <folder Name="nRF_Segger_RTT">
       <file file_name="../../../../../../external/segger_rtt/SEGGER_RTT.c" />

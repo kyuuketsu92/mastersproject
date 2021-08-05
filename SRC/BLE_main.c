@@ -441,3 +441,8 @@ void BLE_nus_send_string(char * dataOut, uint16_t bufferSize)
     uint16_t size = bufferSize;
     ble_nus_data_send(&m_nus, dataOut, &size, m_conn_handle);
 }
+
+void BLE_send_curr_lives(uint8_t value)
+{
+    write_curr_life(&m_cube, value, m_conn_handle);
+}
