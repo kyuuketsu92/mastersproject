@@ -77,6 +77,7 @@ bool senseSequence(bool newSense);
 bool levelSuccessAnimation(bool newAnimation);
 bool lifeReductionAnimation(bool newAnimation);
 bool levelFailAnimation(bool newAnimation);
+void clearLeds(void);
 
 void gamelogic_init(gamelogic_init_struct_t * init_struct)
 {
