@@ -3,7 +3,6 @@
  <Bookmarks/>
  <Breakpoints groups="Breakpoints" active_group="Breakpoints">
   <BreakpointListItem trigger="" line="543" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="4" filename="../../../main.c" useHWbreakpoint="false"/>
-  <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
  </Breakpoints>
  <ExecutionProfileWindow/>
  <FrameBufferWindow>
@@ -79,10 +78,10 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="102" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="61" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="21" y="79" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/game_logic.c" selected="1" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="446" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="402" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="288" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/game_logic.c" selected="1" top="214" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="69" useTextEdit="1" openedFrom="C:/mastersproject/SDK/project/project/ble_app_blinky/main.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/game_logic.h" selected="0" top="41" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="112" useTextEdit="1" openedFrom="C:/mastersproject/SDK/project/project/ble_app_blinky/main.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/accelerometer.c" selected="0" top="88" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="112" useTextEdit="1" openedFrom="C:/mastersproject/SDK/project/project/ble_app_blinky/main.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/accelerometer.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="591" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/ble_cube_srv.c" selected="0" top="565" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="158" useTextEdit="1" openedFrom="C:/mastersproject/SRC/ble_cube_srv.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/ble_cube_srv.h" selected="0" top="136" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="444" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/BLE_main.c" selected="0" top="244" codecName="Default"/>
@@ -90,6 +89,11 @@
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="11" useTextEdit="1" openedFrom="C:/mastersproject/SDK/project/project/ble_app_blinky/main.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/hallEffect.h" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="246" useTextEdit="1" openedFrom="C:/mastersproject/SDK/project/project/ble_app_blinky/main.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/timing_lib.c" selected="0" top="227" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="26" useTextEdit="1" openedFrom="C:/mastersproject/SRC/timing_lib.c" useBinaryEdit="0" left="0" path="../../../../../../../SRC/timing_lib.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="92" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/ws2812b.c" selected="0" top="135" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="159" useTextEdit="1" openedFrom="C:/Users/bozse/Desktop/Tactile Cube Project - Documentation/Programming/mastersproject/SRC/ws2812b.c" useBinaryEdit="0" left="0" path="../../../../../../modules/nrfx/drivers/include/nrfx_gpiote.h" selected="0" top="154" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="65" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/adc_driver.c" selected="0" top="12" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="38" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/hallEffect.c" selected="0" top="6" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../../SRC/movavg.c" selected="0" top="0" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="ble_app_blinky_pca10056_s140" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="C:/mastersproject/SDK/project/project/ble_app_blinky/itsyBitsy/s140/ses/apa12.c&#xa;" fileDialogInitialDirectory="C:/mastersproject/SRC" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="ble_app_blinky_pca10056_s140" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="C:/mastersproject/SDK/project/project/ble_app_blinky/itsyBitsy/s140/ses/apa12.c&#xa;" fileDialogInitialDirectory="C:/mastersproject/SRC" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

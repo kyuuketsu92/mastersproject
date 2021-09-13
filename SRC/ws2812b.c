@@ -117,10 +117,10 @@ void ws2812b_shiftout(WS2812B_LED * colours, uint32_t ledCount)
             if((colours[i].GREEN & ledmask) != 0)
             {
                 NRF_P1->OUTSET = (4UL);
-                delay1H();
-                ledmask = ledmask / 2;
+                delay1H();                
                 NRF_P1->OUTCLR = (4UL);
                 delay1L();
+                ledmask = ledmask / 2;
             }
             else
             {
@@ -139,10 +139,10 @@ void ws2812b_shiftout(WS2812B_LED * colours, uint32_t ledCount)
             if((colours[i].RED & ledmask) != 0)
             {
                 NRF_P1->OUTSET = (4UL);
-                delay1H();
-                ledmask = ledmask / 2;
+                delay1H();                
                 NRF_P1->OUTCLR = (4UL);
                 delay1L();
+                ledmask = ledmask / 2;
             }
             else
             {
@@ -163,9 +163,9 @@ void ws2812b_shiftout(WS2812B_LED * colours, uint32_t ledCount)
             {
                 NRF_P1->OUTSET = (4UL);
                 delay1H();
-                ledmask = ledmask / 2;
                 NRF_P1->OUTCLR = (4UL);
                 delay1L();
+                ledmask = ledmask / 2;
             }
             else
             {

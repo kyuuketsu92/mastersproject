@@ -278,7 +278,7 @@ void game_update()
     {
         case GAMELOGIC_GAME_START:
             game_state = GAMELOGIC_GAME_LEVEL_INCREASE;
-            startAnimation(true);
+            //startAnimation(true);
         break;
 
         case GAMELOGIC_GAME_LEVEL_INCREASE:
